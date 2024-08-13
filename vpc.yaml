@@ -1,11 +1,10 @@
+AWSTemplateFormatVersion: 2010-09-09
 Description: |
   The template will create below resources
      - 3 public (one in each AZ)
      - 3 private subnets (one in each AZ)
      - 3 NAT Gateways (one in each AZ) and default routes for them in the private subnets
      - Internet Gateway
-AWSTemplateFormatVersion: 2010-09-09
-Description: ---
 Parameters:
   VpcName:
     Type: String
@@ -92,6 +91,7 @@ Resources:
       InternetGatewayId: !Ref InternetGateway
       VpcId: !Ref VPC
 
+#####################################################################
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -123,56 +123,19 @@ Resources:
       RouteTableId: !Ref PublicRouteTable
       SubnetId: !Ref PublicSubnetC
 
-  PrivateSubnetARouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref PrivateRouteTableA
-      SubnetId: !Ref PrivateSubnetA
-
-  PrivateSubnetBRouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref PrivateRouteTableB
-      SubnetId: !Ref PrivateSubnetB
-
-  PrivateSubnetCRouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref PrivateRouteTableC
-      SubnetId: !Ref PrivateSubnetC
-
-  NATGatewayA:
-    Type: AWS::EC2::NatGateway
-    Properties:
-      AllocationId: !GetAtt NATGatewayEIPA.AllocationId
-      SubnetId: !Ref PublicSubnetA
-
-  NATGatewayB:
-    Type: AWS::EC2::NatGateway
-    Properties:
-      AllocationId: !GetAtt NATGatewayEIPB.AllocationId
-      SubnetId: !Ref PublicSubnetB
-
-  NATGatewayC:
-    Type: AWS::EC2::NatGateway
-    Properties:
-      AllocationId: !GetAtt NATGatewayEIPC.AllocationId
-      SubnetId: !Ref PublicSubnetC
+#####################################################################
 
   NATGatewayEIPA:
     Type: AWS::EC2::EIP
     Properties:
       Domain: vpc
 
-  NATGatewayEIPB:
-    Type: AWS::EC2::EIP
+  NATGatewayA:
+    Type: AWS::EC2::NatGateway
+    DependsOn: NATGatewayEIPA
     Properties:
-      Domain: vpc
-
-  NATGatewayEIPC:
-    Type: AWS::EC2::EIP
-    Properties:
-      Domain: vpc
+      AllocationId: !GetAtt NATGatewayEIPA.AllocationId
+      SubnetId: !Ref PublicSubnetA
 
   PrivateRouteTableA:
     Type: AWS::EC2::RouteTable
@@ -185,7 +148,29 @@ Resources:
     Properties:
       RouteTableId: !Ref PrivateRouteTableA
       DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref NATGatewayA
+      NatGatewayId: !Ref NATGatewayA
+
+  PrivateSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableA
+      SubnetId: !Ref PrivateSubnetA
+
+
+#####################################################################
+
+  NATGatewayEIPB:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  NATGatewayB:
+    Type: AWS::EC2::NatGateway
+    DependsOn: NATGatewayEIPB
+    Properties:
+      AllocationId: !GetAtt NATGatewayEIPB.AllocationId
+      SubnetId: !Ref PublicSubnetB
+
 
   PrivateRouteTableB:
     Type: AWS::EC2::RouteTable
@@ -198,7 +183,29 @@ Resources:
     Properties:
       RouteTableId: !Ref PrivateRouteTableB
       DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref NATGatewayB
+      NatGatewayId: !Ref NATGatewayB
+
+  PrivateSubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableB
+      SubnetId: !Ref PrivateSubnetB
+
+
+#####################################################################
+
+  NATGatewayEIPC:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  NATGatewayC:
+    Type: AWS::EC2::NatGateway
+    DependsOn: NATGatewayEIPC
+    Properties:
+      AllocationId: !GetAtt NATGatewayEIPC.AllocationId
+      SubnetId: !Ref PublicSubnetC
+
 
   PrivateRouteTableC:
     Type: AWS::EC2::RouteTable
@@ -211,9 +218,43 @@ Resources:
     Properties:
       RouteTableId: !Ref PrivateRouteTableC
       DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref NATGatewayC
+      NatGatewayId: !Ref NATGatewayC
 
 
+  PrivateSubnetCRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableC
+      SubnetId: !Ref PrivateSubnetC
+
+
+#####################################################################
+
+
+Outputs:
+  VPCoutput:
+    Description: VPC name as output
+    Value: !Ref VPC
+    Export:
+      Name: my-devops-cluster
+
+  PublicSubnetAoutput:
+    Description: PublicSubnetA-output
+    Value: !Ref PublicSubnetA
+    Export:
+      Name: my-devops-cluster-publicsubneta
+
+  PublicSubnetBoutput:
+    Description: PublicSubnetB-output
+    Value: !Ref PublicSubnetB
+    Export:
+      Name: my-devops-cluster-publicsubnetb
+
+  PublicSubnetCoutput:
+    Description: PublicSubnetC-output
+    Value: !Ref PublicSubnetC
+    Export:
+      Name: my-devops-cluster-publicsubnetc
 
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref NATGatewayC
