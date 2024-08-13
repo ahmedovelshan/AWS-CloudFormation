@@ -1,0 +1,51 @@
+Description: >
+  This template contains the following security groups:
+   - ECS Cluster hosts
+   - Load Balancer
+
+Resources:
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http from www
+      VpcId: !ImportValue my-devops-cluster
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 0.0.0.0/0
+
+  ECSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    DependsOn:  ALBSecurityGroup
+    Properties:
+      GroupDescription: Allow http from ALB to ECS
+      VpcId: !ImportValue my-devops-cluster
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 0.0.0.0/0
+
+Outputs:
+  ecssgoutput:
+    Description: ECS SG name output
+    Value: !Ref ECSSecurityGroup
+    Export:
+      Name: MyDevopsClusterECSsg
+
+  albsgoutput:
+    Description: ALB SG name output
+    Value: !Ref ALBSecurityGroup
+    Export:
+      Name: MyDevopsClusterALBsg
