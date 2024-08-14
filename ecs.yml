@@ -1,0 +1,142 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: EC2 ECS cluster that starts out empty, with no EC2 instances yet.
+  An ECS capacity provider automatically launches more EC2 instances as required
+  on the fly when you request ECS to launch services or standalone tasks.
+Parameters:
+  InstanceType:
+    Type: List<AWS::EC2::Instance::InstanceType>
+    Description: EC2 instance type
+    AllowedValues:
+      - t2.large
+      - t2.medium
+  DesiredCapacity:
+    Type: Number
+    Default: "0"
+    Description: Number of EC2 instances to launch in your ECS cluster.
+  MaxSize:
+    Type: Number
+    Default: "3"
+    Description: Maximum number of EC2 instances that can be launched in your ECS cluster.
+  ECSAMI:
+    Description: The Amazon Machine Image ID used for the cluster
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+  Subnets:
+    Type: 'List<AWS::EC2::Subnet::Id>'
+    Description: Select private subnet for ECS Instances
+Resources:
+
+
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
+
+
+
+  ECSAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    DependsOn:
+      - ECSCluster
+      - EC2Role
+    Properties:
+      VPCZoneIdentifier: !Ref Subnets
+      LaunchTemplate:
+        LaunchTemplateId: !Ref ContainerInstances
+        Version: !GetAtt ContainerInstances.LatestVersionNumber
+      MinSize: 0
+      MaxSize:
+        Ref: MaxSize
+      DesiredCapacity:
+        Ref: DesiredCapacity
+      NewInstancesProtectedFromScaleIn: true
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: "true"
+
+
+
+
+
+
+  ContainerInstances:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: "asg-launch-template"
+      LaunchTemplateData:
+        ImageId:
+          Ref: ECSAMI
+        InstanceType:
+          Ref: InstanceType
+        SecurityGroupIds:
+          - !ImportValue MyDevopsClusterECSsg
+        MetadataOptions:
+          HttpEndpoint: enabled
+          HttpTokens: required
+
+
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles: 
+      - !Ref EC2Role 
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+
+
+
+
+
+  CapacityProvider:
+    Type: AWS::ECS::CapacityProvider
+    Properties:
+      AutoScalingGroupProvider:
+        AutoScalingGroupArn: !Ref ECSAutoScalingGroup
+        ManagedScaling:
+          InstanceWarmupPeriod: 60
+          MinimumScalingStepSize: 1
+          MaximumScalingStepSize: 100
+          Status: ENABLED
+          # Percentage of cluster reservation to try to maintain
+          TargetCapacity: 100
+        ManagedTerminationProtection: ENABLED
+
+
+
+  CapacityProviderAssociation:
+    Type: AWS::ECS::ClusterCapacityProviderAssociations
+    Properties:
+      CapacityProviders:
+        - !Ref CapacityProvider
+      Cluster: !Ref ECSCluster
+      DefaultCapacityProviderStrategy:
+        - Base: 0
+          CapacityProvider: !Ref CapacityProvider
+          Weight: 1
+
+
+Outputs:
+  ClusterName:
+    Description: The ECS cluster into which to launch resources
+    Value: ECSCluster
+  CapacityProvider:
+    Description: The cluster capacity provider that the service should use to
+      request capacity when it wants to start up a task
+    Value: CapacityProvider
