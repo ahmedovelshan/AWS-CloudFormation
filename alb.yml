@@ -1,0 +1,68 @@
+Description: >
+  This template defines:
+  - Application Load Balancer 
+  - Default target group 
+
+Resources:
+  LoadBalancerA:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      IpAddressType: ipv4 
+      Name: my-devops-cluster-alb-a
+      Scheme: internet-facing
+      SecurityGroups: 
+        - !ImportValue MyDevopsClusterALBsg
+      Subnets: 
+        - !ImportValue my-devops-cluster-publicsubneta
+        - !ImportValue my-devops-cluster-publicsubnetb
+        - !ImportValue my-devops-cluster-publicsubnetc
+      Type: application 
+
+
+  DefaultTargetGroupA:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckEnabled: Yes
+      HealthCheckIntervalSeconds: 30
+      HealthCheckPath: /
+      HealthCheckPort: 80
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 2
+      IpAddressType: ipv4
+      Name: my-devops-cluster-target-group-a
+      Port: 80
+      Protocol: HTTP
+      ProtocolVersion: HTTP1
+      TargetType: instance
+      UnhealthyThresholdCount: 2
+      VpcId: !ImportValue my-devops-cluster
+
+  HTTPlistenerA:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref DefaultTargetGroupA
+      LoadBalancerArn: !Ref LoadBalancerA
+      Port: 80
+      Protocol: "HTTP"
+
+
+Outputs:
+  LoadBalancerAName:
+    Description: LoadBalancer Name
+    Value: !Ref LoadBalancerA
+    Export:
+      Name: LoadBalancerA
+  LoadBalancerAURL:
+    Description: The URL of the ALB A
+    Value: !GetAtt LoadBalancerA.DNSName
+    Export:
+      Name: LoadBalancerA-URL
+  LoadBalancerAListener:
+    Description: A reference to a port 80 listener
+    Value: !Ref HTTPlistenerA
+    Export:
+      Name: HTTPlistenerA
+
