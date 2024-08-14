@@ -40,12 +40,12 @@ Resources:
 Outputs:
   ecssgoutput:
     Description: ECS SG name output
-    Value: !Ref ECSSecurityGroup
+    Value: !GetAtt ECSSecurityGroup.GroupId
     Export:
       Name: MyDevopsClusterECSsg
 
   albsgoutput:
     Description: ALB SG name output
-    Value: !Ref ALBSecurityGroup
+    Value: !GetAtt ALBSecurityGroup.GroupId
     Export:
       Name: MyDevopsClusterALBsg
