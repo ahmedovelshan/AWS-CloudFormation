@@ -38,6 +38,8 @@ Resources:
 
 
 
+
+
   ECSAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     DependsOn:
@@ -53,12 +55,6 @@ Resources:
         Ref: MaxSize
       DesiredCapacity:
         Ref: DesiredCapacity
-      NewInstancesProtectedFromScaleIn: true
-    UpdatePolicy:
-      AutoScalingReplacingUpdate:
-        WillReplace: "true"
-
-
 
 
 
@@ -72,16 +68,15 @@ Resources:
           Ref: ECSAMI
         InstanceType:
           Ref: InstanceType
+        IamInstanceProfile:
+          Name: !Ref EC2InstanceProfile
         SecurityGroupIds:
           - !ImportValue MyDevopsClusterECSsg
         UserData:
-          # This injected configuration file is how the EC2 instance
-          # knows which ECS cluster on your AWS account it should be joining
           Fn::Base64: 
             !Sub |
             #!/bin/bash
             echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config
-        # Disable IMDSv1, and require IMDSv2
         MetadataOptions:
           HttpEndpoint: enabled
           HttpTokens: required
@@ -94,6 +89,8 @@ Resources:
       Path: /
       Roles: 
       - !Ref EC2Role 
+
+
   EC2Role:
     Type: AWS::IAM::Role
     Properties:
@@ -127,7 +124,6 @@ Resources:
           Status: ENABLED
           # Percentage of cluster reservation to try to maintain
           TargetCapacity: 100
-        ManagedTerminationProtection: ENABLED
 
 
 
