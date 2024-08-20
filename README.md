@@ -1,16 +1,16 @@
-AWS ECS CloudFormation Templates
+#AWS ECS CloudFormation Templates
 This repository contains a set of AWS CloudFormation templates designed to create a complete infrastructure for hosting containerized applications on Amazon Elastic Container Service (ECS). The primary goal is to demonstrate practical experience in setting up AWS infrastructure using CloudFormation.
 
-Purpose
+#Purpose
 These templates are part of my portfolio to showcase my experience with AWS CloudFormation and ECS. They create an ECS environment with necessary networking, security, and load balancing components.
 
-Prerequisites
+#Prerequisites
 An AWS account with appropriate permissions to create VPCs, Security Groups, Load Balancers, and ECS clusters.
 AWS CLI or AWS Management Console to deploy CloudFormation stacks.
 Deployment Instructions
 Follow these steps to deploy the infrastructure:
 
-VPC Configuration
+#VPC Configuration
 
 Deploy vpc.yaml to create a Virtual Private Cloud (VPC) with subnets, route tables, and internet gateways.
 Security Groups
